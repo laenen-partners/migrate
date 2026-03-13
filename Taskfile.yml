@@ -1,0 +1,32 @@
+version: "3"
+
+tasks:
+  build:
+    desc: Build all packages
+    cmds:
+      - go build ./...
+
+  test:
+    desc: Run integration tests (requires Docker)
+    cmds:
+      - go test -v -count=1 ./...
+
+  test:short:
+    desc: Run tests with short flag (skips integration)
+    cmds:
+      - go test -v -short ./...
+
+  lint:
+    desc: Run linter
+    cmds:
+      - golangci-lint run
+
+  tidy:
+    desc: Tidy go modules
+    cmds:
+      - go mod tidy
+
+  fmt:
+    desc: Format code
+    cmds:
+      - gofmt -w .
