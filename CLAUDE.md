@@ -18,7 +18,8 @@ go test -v -count=1 ./...
 
 ## Architecture
 
-- `migrate.go` — Public API: `Up()` and `Down()`
+- `migrate.go` — Public API: `Up()` and `Down()` for SQL migrations
+- `go_migration.go` — Public API: `UpGo()` and `GoMigration` type for programmatic migrations
 - `migration.go` — Parse migration SQL files from `fs.FS`
 - `schema.go` — Database operations: table management, version tracking, advisory locks
 
@@ -28,3 +29,4 @@ go test -v -count=1 ./...
 - Table name: `scoped_schema_migrations` (scope + version composite PK)
 - Tests use testcontainers-go with `postgres:16-alpine`
 - Each test gets its own Postgres container via `setupPostgres(t)`
+- Go migrations are forward-only (no Down), version must be `YYYYMMDDHHMMSS`

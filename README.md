@@ -10,7 +10,8 @@ A simple, library-first PostgreSQL migration tool for Go with **scoped migration
 - **pgx v5** — built on the modern PostgreSQL driver for Go
 - **Advisory locking** — safe for concurrent deploys
 - **dbmate-compatible file format** — familiar `-- migrate:up` / `-- migrate:down` sections
-- **Transactional** — each migration runs in its own transaction
+- **Transactional** — each SQL migration runs in its own transaction
+- **Go migrations** — programmatic migrations for seeding via APIs or other non-SQL tasks
 
 ## Installation
 
@@ -83,6 +84,48 @@ CREATE TABLE users (
 -- migrate:down
 DROP TABLE users;
 ```
+
+## Go Migrations
+
+For programmatic migrations (API seeding, external service calls, data transformations) that don't belong in SQL:
+
+```go
+migrations := []migrate.GoMigration{
+    {
+        Version: "20240101120000",
+        Name:    "seed_default_roles",
+        Up: func(ctx context.Context) error {
+            // Call an API, seed data, etc.
+            return adminClient.CreateRole(ctx, "viewer")
+        },
+    },
+    {
+        Version: "20240102120000",
+        Name:    "provision_storage",
+        Up: func(ctx context.Context) error {
+            return storageClient.CreateBucket(ctx, "uploads")
+        },
+    },
+}
+
+migrate.UpGo(ctx, pool, migrations, "seed")
+```
+
+### `UpGo`
+
+```go
+func UpGo(ctx context.Context, pool *pgxpool.Pool, migrations []GoMigration, scope string) error
+```
+
+Applies all pending Go migrations for the given scope, in version order. Each migration's `Up` function receives only a `context.Context` — if you need database access, capture a pool via closure.
+
+Go migrations are forward-only (no `Down`). Version tracking uses the same `scoped_schema_migrations` table, so `UpGo` is idempotent and concurrency-safe.
+
+**Validation rules:**
+- Version must be 14 digits (`YYYYMMDDHHMMSS`)
+- Name must be non-empty
+- `Up` function must be non-nil
+- No duplicate versions
 
 ## Scoped Migrations
 
