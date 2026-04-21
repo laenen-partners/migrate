@@ -66,7 +66,7 @@ func UpGo(ctx context.Context, pool *pgxpool.Pool, migrations []GoMigration, sco
 	if err := acquireAdvisoryLock(ctx, conn, scope); err != nil {
 		return err
 	}
-	defer releaseAdvisoryLock(ctx, conn, scope)
+	defer releaseAdvisoryLock(ctx, conn, scope) //nolint:errcheck // best-effort unlock
 
 	applied, err := appliedVersions(ctx, conn, scope)
 	if err != nil {
@@ -88,7 +88,7 @@ func UpGo(ctx context.Context, pool *pgxpool.Pool, migrations []GoMigration, sco
 		}
 
 		if err := recordVersion(ctx, tx, scope, m.Version); err != nil {
-			tx.Rollback(ctx)
+			_ = tx.Rollback(ctx)
 			return err
 		}
 

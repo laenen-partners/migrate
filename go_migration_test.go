@@ -35,7 +35,9 @@ func TestUpGoAppliesMigrations(t *testing.T) {
 	}
 
 	var count int
-	pool.QueryRow(ctx, `SELECT count(*) FROM scoped_schema_migrations WHERE scope = 'go-app'`).Scan(&count)
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM scoped_schema_migrations WHERE scope = 'go-app'`).Scan(&count); err != nil {
+		t.Fatalf("querying: %v", err)
+	}
 	if count != 2 {
 		t.Errorf("expected 2 applied migrations, got %d", count)
 	}
@@ -121,7 +123,10 @@ func TestUpGoStopsOnError(t *testing.T) {
 	}
 
 	var count int
-	pool.QueryRow(ctx, `SELECT count(*) FROM scoped_schema_migrations WHERE scope = 'go-partial'`).Scan(&count)
+	err = pool.QueryRow(ctx, `SELECT count(*) FROM scoped_schema_migrations WHERE scope = 'go-partial'`).Scan(&count)
+	if err != nil {
+		t.Fatalf("querying: %v", err)
+	}
 	if count != 1 {
 		t.Errorf("expected 1 applied migration (good one), got %d", count)
 	}
@@ -219,8 +224,12 @@ func TestUpGoScopeIsolation(t *testing.T) {
 	}
 
 	var countA, countB int
-	pool.QueryRow(ctx, `SELECT count(*) FROM scoped_schema_migrations WHERE scope = 'go-scope-a'`).Scan(&countA)
-	pool.QueryRow(ctx, `SELECT count(*) FROM scoped_schema_migrations WHERE scope = 'go-scope-b'`).Scan(&countB)
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM scoped_schema_migrations WHERE scope = 'go-scope-a'`).Scan(&countA); err != nil {
+		t.Fatalf("querying scope-a: %v", err)
+	}
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM scoped_schema_migrations WHERE scope = 'go-scope-b'`).Scan(&countB); err != nil {
+		t.Fatalf("querying scope-b: %v", err)
+	}
 
 	if countA != 1 {
 		t.Errorf("scope-a: expected 1, got %d", countA)

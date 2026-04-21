@@ -233,8 +233,12 @@ DROP TABLE orders;
 	}
 
 	var countA, countB int
-	pool.QueryRow(ctx, `SELECT count(*) FROM scoped_schema_migrations WHERE scope = 'scope_a'`).Scan(&countA)
-	pool.QueryRow(ctx, `SELECT count(*) FROM scoped_schema_migrations WHERE scope = 'scope_b'`).Scan(&countB)
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM scoped_schema_migrations WHERE scope = 'scope_a'`).Scan(&countA); err != nil {
+		t.Fatalf("querying scope_a: %v", err)
+	}
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM scoped_schema_migrations WHERE scope = 'scope_b'`).Scan(&countB); err != nil {
+		t.Fatalf("querying scope_b: %v", err)
+	}
 
 	if countA != 0 {
 		t.Errorf("scope_a: expected 0, got %d", countA)
@@ -245,7 +249,9 @@ DROP TABLE orders;
 
 	// Verify orders table still exists
 	var exists bool
-	pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'orders')`).Scan(&exists)
+	if err := pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'orders')`).Scan(&exists); err != nil {
+		t.Fatalf("checking orders table: %v", err)
+	}
 	if !exists {
 		t.Error("orders table should still exist")
 	}
@@ -280,7 +286,9 @@ DROP TABLE IF EXISTS widgets;
 	}
 
 	var count int
-	pool.QueryRow(ctx, `SELECT count(*) FROM scoped_schema_migrations WHERE scope = 'concurrent'`).Scan(&count)
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM scoped_schema_migrations WHERE scope = 'concurrent'`).Scan(&count); err != nil {
+		t.Fatalf("querying: %v", err)
+	}
 	if count != 1 {
 		t.Errorf("expected 1 migration, got %d", count)
 	}
@@ -321,7 +329,9 @@ func TestUpThenDownThenUp(t *testing.T) {
 	}
 
 	var count int
-	pool.QueryRow(ctx, `SELECT count(*) FROM scoped_schema_migrations WHERE scope = 'roundtrip'`).Scan(&count)
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM scoped_schema_migrations WHERE scope = 'roundtrip'`).Scan(&count); err != nil {
+		t.Fatalf("querying: %v", err)
+	}
 	if count != 2 {
 		t.Errorf("expected 2, got %d", count)
 	}
@@ -379,7 +389,9 @@ DELETE FROM ordered_test WHERE step = 3;
 	var steps []int
 	for rows.Next() {
 		var s int
-		rows.Scan(&s)
+		if err := rows.Scan(&s); err != nil {
+			t.Fatalf("scanning: %v", err)
+		}
 		steps = append(steps, s)
 	}
 
@@ -393,13 +405,17 @@ DELETE FROM ordered_test WHERE step = 3;
 	}
 
 	var remaining int
-	pool.QueryRow(ctx, `SELECT count(*) FROM ordered_test`).Scan(&remaining)
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM ordered_test`).Scan(&remaining); err != nil {
+		t.Fatalf("querying: %v", err)
+	}
 	if remaining != 1 {
 		t.Errorf("expected 1 row remaining, got %d", remaining)
 	}
 
 	var applied int
-	pool.QueryRow(ctx, `SELECT count(*) FROM scoped_schema_migrations WHERE scope = 'order'`).Scan(&applied)
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM scoped_schema_migrations WHERE scope = 'order'`).Scan(&applied); err != nil {
+		t.Fatalf("querying: %v", err)
+	}
 	if applied != 1 {
 		t.Errorf("expected 1 applied migration, got %d", applied)
 	}
@@ -435,14 +451,18 @@ SELECT 1;
 
 	// First migration should have been applied
 	var count int
-	pool.QueryRow(ctx, `SELECT count(*) FROM scoped_schema_migrations WHERE scope = 'partial'`).Scan(&count)
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM scoped_schema_migrations WHERE scope = 'partial'`).Scan(&count); err != nil {
+		t.Fatalf("querying: %v", err)
+	}
 	if count != 1 {
 		t.Errorf("expected 1 applied migration (good one), got %d", count)
 	}
 
 	// Table from first migration should exist
 	var exists bool
-	pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'partial_test')`).Scan(&exists)
+	if err := pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'partial_test')`).Scan(&exists); err != nil {
+		t.Fatalf("checking table: %v", err)
+	}
 	if !exists {
 		t.Error("partial_test table should exist from first migration")
 	}
@@ -470,7 +490,9 @@ DROP TABLE batch_table_%d;
 	}
 
 	var count int
-	pool.QueryRow(ctx, `SELECT count(*) FROM scoped_schema_migrations WHERE scope = 'batch'`).Scan(&count)
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM scoped_schema_migrations WHERE scope = 'batch'`).Scan(&count); err != nil {
+		t.Fatalf("querying: %v", err)
+	}
 	if count != 20 {
 		t.Errorf("expected 20 migrations, got %d", count)
 	}
@@ -479,7 +501,9 @@ DROP TABLE batch_table_%d;
 		t.Fatalf("Down(10): %v", err)
 	}
 
-	pool.QueryRow(ctx, `SELECT count(*) FROM scoped_schema_migrations WHERE scope = 'batch'`).Scan(&count)
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM scoped_schema_migrations WHERE scope = 'batch'`).Scan(&count); err != nil {
+		t.Fatalf("querying: %v", err)
+	}
 	if count != 10 {
 		t.Errorf("expected 10 migrations remaining, got %d", count)
 	}

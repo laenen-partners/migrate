@@ -21,7 +21,7 @@ func ensureTable(ctx context.Context, conn *pgxpool.Conn) error {
 	if _, err := conn.Exec(ctx, `SELECT pg_advisory_lock(-1)`); err != nil {
 		return fmt.Errorf("acquiring table creation lock: %w", err)
 	}
-	defer conn.Exec(ctx, `SELECT pg_advisory_unlock(-1)`)
+	defer conn.Exec(ctx, `SELECT pg_advisory_unlock(-1)`) //nolint:errcheck // best-effort unlock
 
 	_, err := conn.Exec(ctx, createTableSQL)
 	if err != nil {

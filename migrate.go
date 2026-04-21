@@ -26,7 +26,7 @@ func Up(ctx context.Context, pool *pgxpool.Pool, fsys fs.FS, scope string) error
 	if err := acquireAdvisoryLock(ctx, conn, scope); err != nil {
 		return err
 	}
-	defer releaseAdvisoryLock(ctx, conn, scope)
+	defer releaseAdvisoryLock(ctx, conn, scope) //nolint:errcheck // best-effort unlock
 
 	migrations, err := parseMigrations(fsys)
 	if err != nil {
@@ -49,12 +49,12 @@ func Up(ctx context.Context, pool *pgxpool.Pool, fsys fs.FS, scope string) error
 		}
 
 		if _, err := tx.Exec(ctx, m.UpSQL); err != nil {
-			tx.Rollback(ctx)
+			_ = tx.Rollback(ctx)
 			return fmt.Errorf("executing up migration %s (%s): %w", m.Version, m.Name, err)
 		}
 
 		if err := recordVersion(ctx, tx, scope, m.Version); err != nil {
-			tx.Rollback(ctx)
+			_ = tx.Rollback(ctx)
 			return err
 		}
 
@@ -82,7 +82,7 @@ func Down(ctx context.Context, pool *pgxpool.Pool, fsys fs.FS, scope string, ste
 	if err := acquireAdvisoryLock(ctx, conn, scope); err != nil {
 		return err
 	}
-	defer releaseAdvisoryLock(ctx, conn, scope)
+	defer releaseAdvisoryLock(ctx, conn, scope) //nolint:errcheck // best-effort unlock
 
 	migrations, err := parseMigrations(fsys)
 	if err != nil {
@@ -115,12 +115,12 @@ func Down(ctx context.Context, pool *pgxpool.Pool, fsys fs.FS, scope string, ste
 		}
 
 		if _, err := tx.Exec(ctx, m.DownSQL); err != nil {
-			tx.Rollback(ctx)
+			_ = tx.Rollback(ctx)
 			return fmt.Errorf("executing down migration %s (%s): %w", m.Version, m.Name, err)
 		}
 
 		if err := removeVersion(ctx, tx, scope, version); err != nil {
-			tx.Rollback(ctx)
+			_ = tx.Rollback(ctx)
 			return err
 		}
 
